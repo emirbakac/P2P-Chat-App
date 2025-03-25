@@ -6,7 +6,6 @@ from utils import log_message, decrypt_message
 
 TCP_PORT = 6001
 
-
 class ChatResponder:
     def __init__(self, peers):
         self.peers = peers

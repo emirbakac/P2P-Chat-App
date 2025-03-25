@@ -6,7 +6,6 @@ from utils import log_message, encrypt_message
 
 TCP_PORT = 6001  # port to connect to remote ChatResponder
 
-
 def chat_menu(peers):
     while True:
         choice = input("Enter command (Users / Chat / History): ").strip().lower()
@@ -23,9 +22,12 @@ def chat_menu(peers):
 def display_users(peers):
     current_time = time.time()
     print("Available Users:")
+    # Only display users seen in the last 15 minutes
     for ip, info in peers.items():
-        status = "(Online)" if current_time - info["last_seen"] <= 10 else "(Away)"
-        print(f"{info['username']} {status} - {ip}")
+        # Filter out users not seen within the last 900 seconds
+        if current_time - info["last_seen"] <= 900:
+            status = "(Online)" if current_time - info["last_seen"] <= 10 else "(Away)"
+            print(f"{info['username']} {status} - {ip}")
 
 
 def start_chat(peers):
