@@ -1,4 +1,6 @@
 import threading
+from gui import Gui
+from tkinter import simpledialog
 from service_announcer import ServiceAnnouncer
 from peer_discovery import PeerDiscovery
 from chat_responder import ChatResponder
@@ -6,7 +8,7 @@ from chat_initiator import chat_menu
 
 def main():
     # Ask for username at startup (used by ServiceAnnouncer)
-    username = input("Enter your username: ")
+    username = simpledialog.askstring("~", "Enter your username: ")
 
     # Shared dictionary for peers {ip: {"username": str, "last_seen": timestamp}}
     peers = {}
@@ -17,17 +19,17 @@ def main():
     responder = ChatResponder(peers)
 
     # Start background services in separate threads.
-    threads = [
+    service_threads = [
         threading.Thread(target=announcer.start_broadcast, daemon=True),
         threading.Thread(target=discovery.listen, daemon=True),
         threading.Thread(target=responder.start_server, daemon=True)
     ]
 
-    for t in threads:
-        t.start()
+    for thread in service_threads:
+        thread.start()
 
-    # Start the Chat Initiator (CLI) loop in the main thread.
-    chat_menu(peers)
+    # Run the GUI in the main thread.
+    gui = Gui(peers)  # This calls mainloop() and will block the main thread.
 
 if __name__ == "__main__":
     main()
