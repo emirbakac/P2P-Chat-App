@@ -1,11 +1,16 @@
 import tkinter as tk
-from chat_initiator import show_history, display_users
+from time import time
+from chat_initiator import show_history, display_users, start_chat
+
+secure_value = False
 
 class Gui:
     def __init__(self, peers):
+        self.peers = peers
         # Instance attributes for chat state
         self.chat_conversations = {}
         self.current_chat = None
+        self.username = None
 
         # Setup main window
         self.root = tk.Tk()
@@ -30,6 +35,7 @@ class Gui:
             cursor="hand2"
         )
         secured_switch.pack(side=tk.RIGHT, padx=5, pady=5)
+        self.get_secure_value() #Gets the value for 'secure_value'
 
         history_button = tk.Button(top_bar, text="History", command=show_history, font=("Arial", 12))
         history_button.pack(side=tk.RIGHT, padx=5, pady=5)
@@ -70,6 +76,7 @@ class Gui:
         # Populate with example entries
         self.user_listbox.insert(tk.END, "emirbakac - Online")
         self.user_listbox.insert(tk.END, "eylul - Away")
+        self.update_user_list()
 
         # Bind selection event to switch chat
         self.user_listbox.bind("<<ListboxSelect>>", self.switch_chat)
@@ -115,22 +122,23 @@ class Gui:
         if selection:
             # Extract username from the selected entry (assumes format "username - status")
             entry = self.user_listbox.get(selection[0])
-            username = entry.split(" - ")[0]
-            self.current_chat = username
+            self.username = entry.split(" - ")[0]
+            self.current_chat = self.username
 
             # Update the chat header label
-            self.chat_header.config(text=f"Chat with {username}")
+            self.chat_header.config(text=f"Chat with {self.username}")
 
             # Load the conversation if it exists, or clear the chat area
             self.chat_text.config(state='normal')
             self.chat_text.delete(1.0, tk.END)
-            if username in self.chat_conversations:
-                self.chat_text.insert(tk.END, self.chat_conversations[username])
+            if self.username in self.chat_conversations:
+                self.chat_text.insert(tk.END, self.chat_conversations[self.username])
             self.chat_text.config(state='disabled')
 
 
     def send_message(self):
         """Send a message in the active chat conversation."""
+        start_chat(peers=self.peers, username=self.username, message=self.message_entry.get())
         message = self.message_entry.get()
         if self.current_chat and message.strip():
             # Determine prefix based on secured switch
@@ -150,3 +158,30 @@ class Gui:
             self.chat_text.see(tk.END)
             self.message_entry.delete(0, tk.END)
 
+    def update_user_list(self):
+        """Update the user_listbox every 5 seconds."""
+        self.user_listbox.delete(0, tk.END)
+        now = time()
+
+        # copy dict for thread-safety in the iteration.
+        for ip, info in list(self.peers.items()):
+            age = now - info["last_seen"]
+            if age > 900:  # Kick the user if it is more than 15 minutes.
+                continue
+            status = "Online" if age <= 10 else "Away"
+            self.user_listbox.insert(tk.END, f"{info['username']} - {status}")
+
+        # print("listbox updated")
+        # print(self.peers)
+
+        #Call it again after 5000 ms.
+        self.root.after(3000, self.update_user_list)
+
+    def get_secure_value(self):
+        """Updates the secure_value every second."""
+
+        global secure_value
+        secure_value = self.secured_var.get()
+        # print(secure_value)
+
+        self.root.after(1000, self.get_secure_value)

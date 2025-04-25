@@ -4,7 +4,6 @@ from tkinter import simpledialog
 from service_announcer import ServiceAnnouncer
 from peer_discovery import PeerDiscovery
 from chat_responder import ChatResponder
-from chat_initiator import chat_menu
 
 def main():
     # Ask for username at startup (used by ServiceAnnouncer)
