@@ -1,22 +1,23 @@
 import socket
 import json
 import time
+import gui
 from diffie_hellman import perform_diffie_hellman
 from utils import log_message, encrypt_message
 
 TCP_PORT = 6001  # port to connect to remote ChatResponder
 
-def chat_menu(peers):
-    while True:
-        choice = input("Enter command (Users / Chat / History): ").strip().lower()
-        if choice == "users":
-            display_users(peers)
-        elif choice == "chat":
-            start_chat(peers)
-        elif choice == "history":
-            show_history()
-        else:
-            print("Invalid command.")
+# def chat_menu(peers):
+#     while True:
+#         choice = input("Enter command (Users / Chat / History): ").strip().lower()
+#         if choice == "users":
+#             display_users(peers)
+#         elif choice == "chat":
+#             start_chat(peers)
+#         elif choice == "history":
+#             show_history()
+#         else:
+#             print("Invalid command.")
 
 
 def display_users(peers):
@@ -30,9 +31,9 @@ def display_users(peers):
             print(f"{info['username']} {status} - {ip}")
 
 
-def start_chat(peers):
-    target_username = input("Enter the username to chat with: ").strip()
-    secure_chat = input("Chat securely? (yes/no): ").strip().lower() == "yes"
+def start_chat(peers, username, message):
+
+    target_username = username
 
     # Find IP address for the given username from peers dictionary.
     target_ip = None
@@ -48,16 +49,16 @@ def start_chat(peers):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((target_ip, TCP_PORT))
-            if secure_chat:
+            if  gui.secure_value:
                 # Begin Diffie-Hellman exchange
                 # For simplicity, assume perform_diffie_hellman handles the exchange and returns a shared key.
                 shared_key = perform_diffie_hellman(s)
                 # Now let the user type a message, encrypt it, and send.
-                msg = input("Enter your message: ")
+                msg = message
                 encrypted = encrypt_message(msg, shared_key)
                 json_msg = json.dumps({"encryptedmessage": encrypted})
             else:
-                msg = input("Enter your message: ")
+                msg = message
                 json_msg = json.dumps({"unencryptedmessage": msg})
             s.sendall(json_msg.encode())
             log_message("SENT", target_username, target_ip, msg)
