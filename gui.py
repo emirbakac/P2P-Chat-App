@@ -1,6 +1,5 @@
-import os, queue
+import os, queue, time
 import tkinter as tk
-from time import time
 from chat_initiator import show_history, display_users, start_chat
 
 class Gui:
@@ -150,8 +149,9 @@ class Gui:
             except queue.Empty:
                 break
 
-            prefix = "(Secured): " if secured else "(Not Secured): "
-            new_msg = f"{username}: {prefix}{text}\n"
+            time_str = time.strftime("[%H:%M] ", time.localtime())
+            prefix = "(Encrypted): " if secured else "(Unencrypted): "
+            new_msg = f"{time_str}{username}: {prefix}{text}\n"
             self.chat_conversations.setdefault(username, "")
             self.chat_conversations[username] += new_msg
 
@@ -188,8 +188,9 @@ class Gui:
         secured = self.secured_var.get()
         start_chat(peers=self.peers, username=self.current_chat, message=msg, secured=secured)
 
-        prefix = "(Secured): " if secured else "(Not Secured): "
-        new_msg = f"You: {prefix}{msg}\n"
+        time_str = time.strftime("[%H:%M] ", time.localtime())
+        prefix = "(Encrypted): " if secured else "(Unencrypted): "
+        new_msg = f"{time_str}You {prefix}{msg}\n"
         self.chat_conversations.setdefault(self.current_chat, "")
         self.chat_conversations[self.current_chat] += new_msg
 
@@ -203,7 +204,7 @@ class Gui:
     def update_user_list(self):
         """Refresh the user list every 3 seconds."""
         self.user_listbox.delete(0, tk.END)
-        now = time()
+        now = time.time()
         for ip, info in list(self.peers.items()):
             age = now - info.get("last_seen", 0)
             if age > 900:
@@ -221,32 +222,41 @@ def load_chat_history(log_file="chat_history.log"):
     history = {}
     if not os.path.exists(log_file):
         return history
+
     try:
         with open(log_file, 'r', encoding='utf-8') as f:
             for line in f:
-                # Expected format: timestamp - user (ip) - DIRECTION: message
-                parts = line.strip().split(' - ')
-                if len(parts) < 3:
+                # Split into exactly 4 parts, so any extra " - " in the message won't break us
+                # parts: [timestamp, "username (ip)", direction, "(Encrypted)/(Unencrypted): message"]
+                parts = line.strip().split(' - ', 3)
+                if len(parts) < 4:
                     continue
-                _, user_ip, rest = parts[0], parts[1], parts[2]
+
+                timestamp_str, user_ip, direction, secure_and_msg = parts
+
+                # Extract just the HH:MM from "YYYY-MM-DD HH:MM:SS"
+                time_only = timestamp_str.split(' ')[1][:5]
+
                 # Extract username
                 username = user_ip.split(' (')[0]
-                # Extract direction and message
-                if rest.startswith('SENT: '):
-                    direction = 'SENT'
-                    msg = rest[len('SENT: '):]
-                elif rest.startswith('RECEIVED: '):
-                    direction = 'RECEIVED'
-                    msg = rest[len('RECEIVED: '):]
+
+                # Split off the "(Encyrpted)" or "(Unencrypted)" label
+                if ': ' in secure_and_msg:
+                    secure_label, msg = secure_and_msg.split(': ', 1)
                 else:
-                    continue
-                # Initialize conversation
+                    secure_label, msg = '', secure_and_msg
+
+                # Prepare the history bucket
                 history.setdefault(username, '')
-                # Format for GUI
-                if direction == 'SENT':
-                    history[username] += f"You: {msg}\n"
-                else:
-                    history[username] += f"{username}: {msg}\n"
+
+                # Build the line prefix
+                prefix = f"[{time_only}] "
+                if direction.upper() == 'SENT':
+                    history[username] += f"{prefix}You {secure_label}: {msg}\n"
+                elif direction.upper() == 'RECEIVED':
+                    history[username] += f"{prefix}{username} {secure_label}: {msg}\n"
+
     except Exception as e:
         print(f"Failed to load chat history: {e}")
+
     return history

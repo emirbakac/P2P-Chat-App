@@ -1,8 +1,8 @@
 import time
 
-def log_message(direction, username, ip, message):
+def log_message(direction, username, ip, message, secured):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    log_entry = f"{timestamp} - {username} ({ip}) - {direction}: {message}\n"
+    log_entry = f"{timestamp} - {username} ({ip}) - {direction} - {secured}: {message}\n"
     with open("chat_history.log", "a") as f:
         f.write(log_entry)
 
