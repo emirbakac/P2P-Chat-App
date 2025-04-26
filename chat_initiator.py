@@ -38,11 +38,13 @@ def start_chat(peers, username, message, secured):
                 msg = message
                 encrypted = encrypt_message(msg, shared_key)
                 json_msg = json.dumps({"encryptedmessage": encrypted})
+                log_message("SENT", target_username, target_ip, msg, "(Encrypted)")
             else:
                 msg = message
                 json_msg = json.dumps({"unencryptedmessage": msg})
+                log_message("SENT", target_username, target_ip, msg, "(Unencrypted)")
             s.sendall(json_msg.encode())
-            log_message("SENT", target_username, target_ip, msg)
+
     except Exception as e:
         print("Error initiating chat:", e)
 

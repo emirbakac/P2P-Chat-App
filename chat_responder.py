@@ -33,12 +33,12 @@ class ChatResponder:
                 # Encrypted text:
                 elif "encryptedmessage" in message:
                     text = decrypt_message(message["encryptedmessage"])
-                    log_message("RECEIVED", sender_username, sender_ip, text)
+                    log_message("RECEIVED", sender_username, sender_ip, text, "(Encrypted)")
                     self.recv_queue.put((sender_username, text, True))
                 # Plain text:
                 elif "unencryptedmessage" in message:
                     text = message["unencryptedmessage"]
-                    log_message("RECEIVED", sender_username, sender_ip, text)
+                    log_message("RECEIVED", sender_username, sender_ip, text, "(Unencrypted)")
                     self.recv_queue.put((sender_username, text, False))
                 else:
                     print("Unknown message format received.")
