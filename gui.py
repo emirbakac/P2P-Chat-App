@@ -1,14 +1,14 @@
+import os, queue
 import tkinter as tk
 from time import time
 from chat_initiator import show_history, display_users, start_chat
 
-secure_value = False
-
 class Gui:
-    def __init__(self, peers):
+    def __init__(self, peers, recv_queue):
         self.peers = peers
-        # Instance attributes for chat state
-        self.chat_conversations = {}
+        self.recv_queue = recv_queue
+
+        self.chat_conversations = load_chat_history()
         self.current_chat = None
         self.username = None
 
@@ -35,31 +35,45 @@ class Gui:
             cursor="hand2"
         )
         secured_switch.pack(side=tk.RIGHT, padx=5, pady=5)
-        self.get_secure_value() #Gets the value for 'secure_value'
 
-        history_button = tk.Button(top_bar, text="History", command=show_history, font=("Arial", 12))
+        history_button = tk.Button(
+            top_bar,
+            text="History",
+            command=show_history,
+            font=("Arial", 12)
+        )
         history_button.pack(side=tk.RIGHT, padx=5, pady=5)
-        users_button = tk.Button(top_bar, text="Users", command=lambda: display_users(peers), font=("Arial", 12))
+
+        users_button = tk.Button(
+            top_bar,
+            text="Users",
+            command=lambda: display_users(self.peers),
+            font=("Arial", 12)
+        )
         users_button.pack(side=tk.RIGHT, padx=5, pady=5)
 
-        # 2) MAIN CONTENT FRAME (split into left user list and right chat container)
+        # 2) MAIN CONTENT FRAME
         main_frame = tk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True)
-        main_frame.grid_columnconfigure(0, weight=0)  # User list column (fixed)
-        main_frame.grid_columnconfigure(1, weight=1)  # Chat container column (expand)
+        main_frame.grid_columnconfigure(0, weight=0)
+        main_frame.grid_columnconfigure(1, weight=1)
         main_frame.grid_rowconfigure(0, weight=1)
 
-        # 3) USER PANEL (left side)
+        # 3) USER PANEL
         user_panel = tk.Frame(main_frame, bg="#ffffff", bd=1, relief=tk.SOLID)
         user_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 1))
         user_panel.grid_rowconfigure(1, weight=1)
         user_panel.grid_columnconfigure(0, weight=1)
 
-        user_title = tk.Label(user_panel, text="Online Users", bg="#ffffff", fg="#00c000",
-                              font=("Courier", 16, "bold"))
+        user_title = tk.Label(
+            user_panel,
+            text="Online Users",
+            bg="#ffffff",
+            fg="#00c000",
+            font=("Courier", 16, "bold")
+        )
         user_title.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
 
-        # Frame to hold the listbox and its scrollbar
         list_frame = tk.Frame(user_panel, bg="#ffffff")
         list_frame.grid(row=1, column=0, sticky="nsew")
         list_frame.grid_rowconfigure(0, weight=1)
@@ -68,120 +82,171 @@ class Gui:
         user_scrollbar = tk.Scrollbar(list_frame, orient=tk.VERTICAL)
         user_scrollbar.grid(row=0, column=1, sticky="ns")
 
-        self.user_listbox = tk.Listbox(list_frame, yscrollcommand=user_scrollbar.set,
-                                       font=("Courier", 15, "bold"))
+        self.user_listbox = tk.Listbox(
+            list_frame,
+            yscrollcommand=user_scrollbar.set,
+            font=("Courier", 15, "bold")
+        )
         self.user_listbox.grid(row=0, column=0, sticky="nsew")
         user_scrollbar.config(command=self.user_listbox.yview)
 
-        # Populate with example entries
-        self.user_listbox.insert(tk.END, "emirbakac - Online")
-        self.user_listbox.insert(tk.END, "eylul - Away")
+        self.user_listbox.bind("<<ListboxSelect>>", self.switch_chat)
         self.update_user_list()
 
-        # Bind selection event to switch chat
-        self.user_listbox.bind("<<ListboxSelect>>", self.switch_chat)
-
-        # 4) CHAT CONTAINER (right side)
+        # 4) CHAT CONTAINER
         chat_container = tk.Frame(main_frame, bg="#ffffff", bd=1, relief=tk.SOLID)
         chat_container.grid(row=0, column=1, sticky="nsew")
-        chat_container.grid_rowconfigure(0, weight=0)  # Header row
-        chat_container.grid_rowconfigure(1, weight=1)  # Chat display expands
-        chat_container.grid_rowconfigure(2, weight=0)  # Message entry row
+        chat_container.grid_rowconfigure(0, weight=0)
+        chat_container.grid_rowconfigure(1, weight=1)
+        chat_container.grid_rowconfigure(2, weight=0)
         chat_container.grid_columnconfigure(0, weight=1)
 
-        # 4a) Chat Header
-        self.chat_header = tk.Label(chat_container, text="Select a user to chat",
-                                    bg="#e0e0e0", fg="#000000", font=("Arial", 12, "bold"))
+        self.chat_header = tk.Label(
+            chat_container,
+            text="Select a user to chat",
+            bg="#e0e0e0",
+            fg="#000000",
+            font=("Arial", 12, "bold")
+        )
         self.chat_header.grid(row=0, column=0, sticky="ew")
 
-        # 4b) Chat Display Area
         chat_frame = tk.Frame(chat_container, bg="#ffffff")
         chat_frame.grid(row=1, column=0, sticky="nsew")
         chat_frame.grid_rowconfigure(0, weight=1)
         chat_frame.grid_columnconfigure(0, weight=1)
 
-        self.chat_text = tk.Text(chat_frame, state='disabled', wrap='word', font=("Arial", 11))
+        self.chat_text = tk.Text(
+            chat_frame,
+            state='disabled',
+            wrap='word',
+            font=("Arial", 13)
+        )
         self.chat_text.grid(row=0, column=0, sticky="nsew")
 
-        # 4c) Message Entry (only in chat_container)
         bottom_frame = tk.Frame(chat_container, bg="#f0f0f0", height=30)
         bottom_frame.grid(row=2, column=0, sticky="ew")
 
         self.message_entry = tk.Entry(bottom_frame, font=("Arial", 12))
         self.message_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5, pady=5)
 
-        send_button = tk.Button(bottom_frame, text="Send", command=self.send_message, font=("Arial", 12))
+        send_button = tk.Button(
+            bottom_frame,
+            text="Send",
+            command=self.send_message,
+            font=("Arial", 12)
+        )
         send_button.pack(side=tk.RIGHT, padx=5, pady=5)
 
+
+        self.root.after(100, self._poll_incoming)
         self.root.mainloop()
 
 
+    def _poll_incoming(self):
+        """Poll the recv_queue and display any new messages."""
+        while True:
+            try:
+                username, text, secured = self.recv_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            prefix = "(Secured): " if secured else "(Not Secured): "
+            new_msg = f"{username}: {prefix}{text}\n"
+            self.chat_conversations.setdefault(username, "")
+            self.chat_conversations[username] += new_msg
+
+            if self.current_chat == username:
+                self.chat_text.config(state='normal')
+                self.chat_text.insert(tk.END, new_msg)
+                self.chat_text.config(state='disabled')
+                self.chat_text.see(tk.END)
+
+        self.root.after(100, self._poll_incoming)
+
+
     def switch_chat(self, event):
-        """Switch the active chat based on the selected user in the listbox."""
-        selection = self.user_listbox.curselection()
-        if selection:
-            # Extract username from the selected entry (assumes format "username - status")
-            entry = self.user_listbox.get(selection[0])
-            self.username = entry.split(" - ")[0]
-            self.current_chat = self.username
+        """Switch the active chat based on the selected user."""
+        sel = self.user_listbox.curselection()
+        if not sel:
+            return
+        entry = self.user_listbox.get(sel[0])
+        self.current_chat = entry.split(" - ")[0]
+        self.chat_header.config(text=f"Chat with {self.current_chat}")
 
-            # Update the chat header label
-            self.chat_header.config(text=f"Chat with {self.username}")
-
-            # Load the conversation if it exists, or clear the chat area
-            self.chat_text.config(state='normal')
-            self.chat_text.delete(1.0, tk.END)
-            if self.username in self.chat_conversations:
-                self.chat_text.insert(tk.END, self.chat_conversations[self.username])
-            self.chat_text.config(state='disabled')
+        self.chat_text.config(state='normal')
+        self.chat_text.delete(1.0, tk.END)
+        if self.current_chat in self.chat_conversations:
+            self.chat_text.insert(tk.END, self.chat_conversations[self.current_chat])
+        self.chat_text.config(state='disabled')
 
 
     def send_message(self):
-        """Send a message in the active chat conversation."""
-        start_chat(peers=self.peers, username=self.username, message=self.message_entry.get())
-        message = self.message_entry.get()
-        if self.current_chat and message.strip():
-            # Determine prefix based on secured switch
-            prefix = "Secured: " if self.secured_var.get() else "Not Secured: "
-            new_message = f"You: {prefix}{message}\n"
+        """Send a message in the active chat."""
+        msg = self.message_entry.get().strip()
+        if not self.current_chat or not msg:
+            return
+        secured = self.secured_var.get()
+        start_chat(peers=self.peers, username=self.current_chat, message=msg, secured=secured)
 
-            # Append to the current chat conversation in the dictionary
-            if self.current_chat in self.chat_conversations:
-                self.chat_conversations[self.current_chat] += new_message
-            else:
-                self.chat_conversations[self.current_chat] = new_message
+        prefix = "(Secured): " if secured else "(Not Secured): "
+        new_msg = f"You: {prefix}{msg}\n"
+        self.chat_conversations.setdefault(self.current_chat, "")
+        self.chat_conversations[self.current_chat] += new_msg
 
-            # Display the new message in the chat area
-            self.chat_text.config(state='normal')
-            self.chat_text.insert(tk.END, new_message)
-            self.chat_text.config(state='disabled')
-            self.chat_text.see(tk.END)
-            self.message_entry.delete(0, tk.END)
+        self.chat_text.config(state='normal')
+        self.chat_text.insert(tk.END, new_msg)
+        self.chat_text.config(state='disabled')
+        self.chat_text.see(tk.END)
+        self.message_entry.delete(0, tk.END)
+
 
     def update_user_list(self):
-        """Update the user_listbox every 5 seconds."""
+        """Refresh the user list every 3 seconds."""
         self.user_listbox.delete(0, tk.END)
         now = time()
-
-        # copy dict for thread-safety in the iteration.
         for ip, info in list(self.peers.items()):
-            age = now - info["last_seen"]
-            if age > 900:  # Kick the user if it is more than 15 minutes.
+            age = now - info.get("last_seen", 0)
+            if age > 900:
                 continue
             status = "Online" if age <= 10 else "Away"
             self.user_listbox.insert(tk.END, f"{info['username']} - {status}")
-
-        # print("listbox updated")
-        # print(self.peers)
-
-        #Call it again after 5000 ms.
         self.root.after(3000, self.update_user_list)
 
-    def get_secure_value(self):
-        """Updates the secure_value every second."""
 
-        global secure_value
-        secure_value = self.secured_var.get()
-        # print(secure_value)
-
-        self.root.after(1000, self.get_secure_value)
+def load_chat_history(log_file="chat_history.log"):
+    """
+    Parse the log file and build a dict of conversations by username.
+    Returns {username: conversation_string}
+    """
+    history = {}
+    if not os.path.exists(log_file):
+        return history
+    try:
+        with open(log_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                # Expected format: timestamp - user (ip) - DIRECTION: message
+                parts = line.strip().split(' - ')
+                if len(parts) < 3:
+                    continue
+                _, user_ip, rest = parts[0], parts[1], parts[2]
+                # Extract username
+                username = user_ip.split(' (')[0]
+                # Extract direction and message
+                if rest.startswith('SENT: '):
+                    direction = 'SENT'
+                    msg = rest[len('SENT: '):]
+                elif rest.startswith('RECEIVED: '):
+                    direction = 'RECEIVED'
+                    msg = rest[len('RECEIVED: '):]
+                else:
+                    continue
+                # Initialize conversation
+                history.setdefault(username, '')
+                # Format for GUI
+                if direction == 'SENT':
+                    history[username] += f"You: {msg}\n"
+                else:
+                    history[username] += f"{username}: {msg}\n"
+    except Exception as e:
+        print(f"Failed to load chat history: {e}")
+    return history

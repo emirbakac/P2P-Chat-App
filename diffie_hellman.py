@@ -1,6 +1,5 @@
 # Example Diffie-Hellman key exchange functions with p = 19 and g = 2
-import json
-import random
+import json, random
 
 P = 19
 G = 2

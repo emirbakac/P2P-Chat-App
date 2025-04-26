@@ -1,9 +1,7 @@
-import socket
-import json
-import time
+import socket, json, time
 
 BROADCAST_IP = "192.168.1.255"
-BROADCAST_PORT = 6000  # Use the same port as PeerDiscovery listens on
+BROADCAST_PORT = 6000
 
 class ServiceAnnouncer:
     def __init__(self, username):
@@ -17,7 +15,6 @@ class ServiceAnnouncer:
             while True:
                 try:
                     sock.sendto(self.message.encode(), (BROADCAST_IP, BROADCAST_PORT))
-                    # Optionally print debug info
                     print(f"Broadcasted: {self.message}")
                 except Exception as e:
                     print("Broadcast error:", e)

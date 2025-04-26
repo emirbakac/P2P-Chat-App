@@ -1,24 +1,8 @@
-import socket
-import json
-import time
-import gui
+import socket, json, time
 from diffie_hellman import perform_diffie_hellman
 from utils import log_message, encrypt_message
 
-TCP_PORT = 6001  # port to connect to remote ChatResponder
-
-# def chat_menu(peers):
-#     while True:
-#         choice = input("Enter command (Users / Chat / History): ").strip().lower()
-#         if choice == "users":
-#             display_users(peers)
-#         elif choice == "chat":
-#             start_chat(peers)
-#         elif choice == "history":
-#             show_history()
-#         else:
-#             print("Invalid command.")
-
+TCP_PORT = 6001
 
 def display_users(peers):
     current_time = time.time()
@@ -31,7 +15,7 @@ def display_users(peers):
             print(f"{info['username']} {status} - {ip}")
 
 
-def start_chat(peers, username, message):
+def start_chat(peers, username, message, secured):
 
     target_username = username
 
@@ -49,11 +33,8 @@ def start_chat(peers, username, message):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((target_ip, TCP_PORT))
-            if  gui.secure_value:
-                # Begin Diffie-Hellman exchange
-                # For simplicity, assume perform_diffie_hellman handles the exchange and returns a shared key.
+            if  secured:
                 shared_key = perform_diffie_hellman(s)
-                # Now let the user type a message, encrypt it, and send.
                 msg = message
                 encrypted = encrypt_message(msg, shared_key)
                 json_msg = json.dumps({"encryptedmessage": encrypted})
@@ -64,7 +45,6 @@ def start_chat(peers, username, message):
             log_message("SENT", target_username, target_ip, msg)
     except Exception as e:
         print("Error initiating chat:", e)
-
 
 def show_history():
     try:
