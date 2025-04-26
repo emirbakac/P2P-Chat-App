@@ -6,3 +6,4 @@ __pycache__/
 *.pyd
 .idea/
 .DS_Store
+chat_history.log

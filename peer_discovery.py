@@ -1,12 +1,10 @@
-import socket
-import json
-import time
+import socket, json, time
 
 LISTEN_PORT = 6000
 
 class PeerDiscovery:
     def __init__(self, peers):
-        self.peers = peers  # shared dictionary
+        self.peers = peers
 
     def listen(self):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
