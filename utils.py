@@ -6,16 +6,20 @@ def log_message(direction, username, ip, message, secured):
     with open("chat_history.log", "a") as f:
         f.write(log_entry)
 
-def encrypt_message(message, key):
-    # For demonstration, use a simple reversible operation (do not use in production)
-    # You can replace this with a proper encryption method from a library like cryptography.
-    encrypted = ''.join(chr((ord(char) + key) % 256) for char in message)
-    return encrypted
+def encrypt_message(message: str, key: int) -> str:
+    """
+    Mesajı önce UTF-8 bayt dizisine çevir, ardından her baytı key ile XOR et,
+    sonucu hex string olarak döndür.
+    """
+    b = message.encode('utf-8')
+    encrypted_bytes = bytes([byte ^ key for byte in b])
+    return encrypted_bytes.hex()
 
-def decrypt_message(encrypted_message, key=None):
-    # If the key is known, reverse the encryption; for demonstration, assume a preset key if not provided.
-    if key is None:
-        # This is just a placeholder; in secure chat, the shared key would be used.
-        key = 5
-    decrypted = ''.join(chr((ord(char) - key) % 256) for char in encrypted_message)
-    return decrypted
+def decrypt_message(encrypted_hex: str, key: int) -> str:
+    """
+    Hex string olarak gelen veriyi bayt dizisine çevir,
+    her baytı key ile XOR’la, sonra UTF-8'e decode et.
+    """
+    encrypted_bytes = bytes.fromhex(encrypted_hex)
+    decrypted_bytes = bytes([byte ^ key for byte in encrypted_bytes])
+    return decrypted_bytes.decode('utf-8')

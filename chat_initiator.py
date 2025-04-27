@@ -35,14 +35,12 @@ def start_chat(peers, username, message, secured):
             s.connect((target_ip, TCP_PORT))
             if  secured:
                 shared_key = perform_diffie_hellman(s)
-                msg = message
-                encrypted = encrypt_message(msg, shared_key)
+                encrypted = encrypt_message(message, shared_key)
                 json_msg = json.dumps({"encryptedmessage": encrypted})
-                log_message("SENT", target_username, target_ip, msg, "(Encrypted)")
+                log_message("SENT", target_username, target_ip, message, "(Encrypted)")
             else:
-                msg = message
-                json_msg = json.dumps({"unencryptedmessage": msg})
-                log_message("SENT", target_username, target_ip, msg, "(Unencrypted)")
+                json_msg = json.dumps({"unencryptedmessage": message})
+                log_message("SENT", target_username, target_ip, message, "(Unencrypted)")
             s.sendall(json_msg.encode())
 
     except Exception as e:

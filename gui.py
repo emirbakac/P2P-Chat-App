@@ -6,10 +6,8 @@ class Gui:
     def __init__(self, peers, recv_queue):
         self.peers = peers
         self.recv_queue = recv_queue
-
         self.chat_conversations = load_chat_history()
         self.current_chat = None
-        self.username = None
 
         # Setup main window
         self.root = tk.Tk()
