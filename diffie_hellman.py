@@ -1,11 +1,10 @@
-# Example Diffie-Hellman key exchange functions with p = 19 and g = 2
 import json, random
 
-P = 19
-G = 2
+# Public parameters
+P = 19  # Prime modulus
+G = 2   # Generator
 
 def generate_private_key():
-    # For demonstration, choose a small random private key.
     return random.randint(1, P - 2)
 
 
@@ -18,17 +17,19 @@ def compute_shared_key(their_public, my_private):
 
 
 def perform_diffie_hellman(socket_obj):
-    # This function handles a simplified Diffie-Hellman exchange over a TCP socket.
+    # generate keys
     my_private = generate_private_key()
     my_public = compute_public_key(my_private)
 
-    # Send your public key wrapped in a JSON message.
-    socket_obj.sendall(f'{{"key": "{my_public}"}}'.encode())
+    # send your public key wrapped in JSON
+    msg_out = json.dumps({"key": str(my_public)})
+    socket_obj.sendall(msg_out.encode())
 
-    # Wait for the other party's public key.
+    # wait for the peer's public key
     data = socket_obj.recv(1024)
     their_msg = json.loads(data.decode())
     their_public = int(their_msg.get("key"))
 
+    # compute shared secret
     shared_key = compute_shared_key(their_public, my_private)
     return shared_key
