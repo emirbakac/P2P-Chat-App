@@ -1,6 +1,7 @@
 import os, queue, time
 import tkinter as tk
-from chat_initiator import show_history, display_users, start_chat
+from chat_initiator import start_chat
+from utils import show_history, display_users
 
 class Gui:
     def __init__(self, peers, recv_queue):

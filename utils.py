@@ -6,6 +6,25 @@ def log_message(direction, username, ip, message, secured):
     with open("chat_history.log", "a") as f:
         f.write(log_entry)
 
+def display_users(peers):
+    current_time = time.time()
+    print("Available Users:")
+    # Only display users seen in the last 15 minutes
+    for ip, info in peers.items():
+        # Filter out users not seen within the last 900 seconds
+        if current_time - info["last_seen"] <= 900:
+            status = "(Online)" if current_time - info["last_seen"] <= 10 else "(Away)"
+            print(f"{info['username']} {status} - {ip}")
+
+def show_history():
+    try:
+        with open("chat_history.log", "r") as log_file:
+            print("\n--- Chat History ---")
+            print(log_file.read())
+            print("--------------------\n")
+    except FileNotFoundError:
+        print("No chat history found.")
+
 def encrypt_message(message: str, key: int) -> str:
     """
     Mesajı önce UTF-8 bayt dizisine çevir, ardından her baytı key ile XOR et,
