@@ -1,19 +1,8 @@
-import socket, json, time
+import socket, json
 from diffie_hellman import perform_diffie_hellman
 from utils import log_message, encrypt_message
 
 TCP_PORT = 6001
-
-def display_users(peers):
-    current_time = time.time()
-    print("Available Users:")
-    # Only display users seen in the last 15 minutes
-    for ip, info in peers.items():
-        # Filter out users not seen within the last 900 seconds
-        if current_time - info["last_seen"] <= 900:
-            status = "(Online)" if current_time - info["last_seen"] <= 10 else "(Away)"
-            print(f"{info['username']} {status} - {ip}")
-
 
 def start_chat(peers, username, message, secured):
 
@@ -45,12 +34,3 @@ def start_chat(peers, username, message, secured):
 
     except Exception as e:
         print("Error initiating chat:", e)
-
-def show_history():
-    try:
-        with open("chat_history.log", "r") as log_file:
-            print("\n--- Chat History ---")
-            print(log_file.read())
-            print("--------------------\n")
-    except FileNotFoundError:
-        print("No chat history found.")
